@@ -9,86 +9,12 @@
 # You can also run it locally but it's slow.
 # ******************************************************************************
 
-# Start in tasks/ even if run from root directory
-cd "$(dirname "$0")"
-
-# CLI and app temporary locations
-# http://unix.stackexchange.com/a/84980
-temp_app_path=`mktemp -d 2>/dev/null || mktemp -d -t 'temp_app_path'`
-
-# Load functions for working with local NPM registry (Verdaccio)
-source local-registry.sh
-
-function cleanup {
-  echo 'Cleaning up.'
-  cd "$root_path"
-  rm -rf "$temp_app_path"
-  # Restore the original NPM and Yarn registry URLs and stop Verdaccio
-  stopLocalRegistry
-}
-
-# Error messages are redirected to stderr
-function handle_error {
-  echo "$(basename $0): ERROR! An error was encountered executing line $1." 1>&2;
-  cleanup
-  echo 'Exiting with error.' 1>&2;
-  exit 1
-}
-
-function handle_exit {
-  cleanup
-  echo 'Exiting without error.' 1>&2;
-  exit
-}
-
-# Check for the existence of one or more files.
-function exists {
-  for f in $*; do
-    test -e "$f"
-  done
-}
-
-# Check for accidental dependencies in package.json
-function checkDependencies {
-  if ! awk '/"dependencies": {/{y=1;next}/},/{y=0; next}y' package.json | \
-  grep -v -q -E '^\s*"(@testing-library\/.+)|web-vitals|(react(-dom|-scripts)?)"'; then
-   echo "Dependencies are correct"
-  else
-   echo "There are extraneous dependencies in package.json"
-   exit 1
-  fi
-}
-
-# Check for accidental dependencies in package.json
-function checkTypeScriptDependencies {
-  if ! awk '/"dependencies": {/{y=1;next}/},/{y=0; next}y' package.json | \
-  grep -v -q -E '^\s*"(@testing-library\/.+)|web-vitals|(@types\/.+)|typescript|(react(-dom|-scripts)?)"'; then
-   echo "Dependencies are correct"
-  else
-   echo "There are extraneous dependencies in package.json"
-   exit 1
-  fi
-}
-
-# Exit the script with a helpful error message when any error is encountered
-trap 'set +x; handle_error $LINENO $BASH_COMMAND' ERR
-
-# Cleanup before exit on any termination signal
-trap 'set +x; handle_exit' SIGQUIT SIGTERM SIGINT SIGKILL SIGHUP
-
-# Echo every command being executed
-set -x
-
-# Go to root
-cd ..
-root_path=$PWD
-
 # ******************************************************************************
 # First, publish the monorepo.
 # ******************************************************************************
 
 # Start the local NPM registry
-startLocalRegistry "$root_path"/tasks/verdaccio.yaml
+startLocalRegistry "$root_path"/test/e2e/_verdaccio.yaml
 
 # Publish the monorepo
 publishToLocalRegistry
@@ -158,7 +84,7 @@ checkTypeScriptDependencies
 # Check that the TypeScript template passes smoke tests, build, and normal tests
 npm start -- --smoke-test
 npm run build
-CI=true npm test
+npm test
 
 # Check eject behaves and works
 
@@ -171,7 +97,7 @@ exists src/react-app-env.d.ts
 # Check that the TypeScript template passes ejected smoke tests, build, and normal tests
 npm start -- --smoke-test
 npm run build
-CI=true npm test
+npm test
 
 # ******************************************************************************
 # Test --scripts-version with a tarball url

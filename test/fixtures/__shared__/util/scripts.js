@@ -44,7 +44,7 @@ module.exports = class ReactScripts {
     };
 
     if (smoke) {
-      return await execaSafe('npm', ['start', '--smoke-test'], options);
+      return await execaSafe('npm', ['start', '--', '--smoke-test'], options);
     }
     const startProcess = execa('npm', ['start'], options);
     await waitForLocalhost({ port });

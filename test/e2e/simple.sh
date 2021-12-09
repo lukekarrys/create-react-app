@@ -9,66 +9,12 @@
 # You can also run it locally but it's slow.
 # ******************************************************************************
 
-# Start in tasks/ even if run from root directory
-cd "$(dirname "$0")"
-
-# App temporary location
-# http://unix.stackexchange.com/a/84980
-temp_app_path=`mktemp -d 2>/dev/null || mktemp -d -t 'temp_app_path'`
-
-# Load functions for working with local NPM registry (Verdaccio)
-source local-registry.sh
-
-function cleanup {
-  echo 'Cleaning up.'
-  cd "$root_path"
-  # Uncomment when snapshot testing is enabled by default:
-  # rm ./packages/react-scripts/template/src/__snapshots__/App.test.js.snap
-  rm -rf "$temp_app_path"
-  # Restore the original NPM and Yarn registry URLs and stop Verdaccio
-  stopLocalRegistry
-}
-
-# Error messages are redirected to stderr
-function handle_error {
-  echo "$(basename $0): ERROR! An error was encountered executing line $1." 1>&2;
-  cleanup
-  echo 'Exiting with error.' 1>&2;
-  exit 1
-}
-
-function handle_exit {
-  cleanup
-  echo 'Exiting without error.' 1>&2;
-  exit
-}
-
-# Check for the existence of one or more files.
-function exists {
-  for f in $*; do
-    test -e "$f"
-  done
-}
-
-# Exit the script with a helpful error message when any error is encountered
-trap 'set +x; handle_error $LINENO $BASH_COMMAND' ERR
-
-# Cleanup before exit on any termination signal
-trap 'set +x; handle_exit' SIGQUIT SIGTERM SIGINT SIGKILL SIGHUP
-
-# Echo every command being executed
-set -x
-
-# Go to root
-cd ..
-root_path=$PWD
-
 # Make sure we don't introduce accidental references to PATENTS.
 EXPECTED='packages/react-error-overlay/fixtures/bundle.mjs
 packages/react-error-overlay/fixtures/bundle.mjs.map
 packages/react-error-overlay/fixtures/bundle_u.mjs
 packages/react-error-overlay/fixtures/bundle_u.mjs.map
-tasks/e2e-simple.sh'
+test/e2e/simple.sh'
 ACTUAL=$(git grep -l PATENTS)
 if [ "$EXPECTED" != "$ACTUAL" ]; then
   echo "PATENTS crept into some new files?"
@@ -77,28 +23,15 @@ if [ "$EXPECTED" != "$ACTUAL" ]; then
 fi
 
 # Start the local NPM registry
-startLocalRegistry "$root_path"/tasks/verdaccio.yaml
+startLocalRegistry "$root_path"/test/e2e/_verdaccio.yaml
 
-# Lint own code
-./node_modules/.bin/eslint --max-warnings 0 packages/babel-preset-react-app/
-./node_modules/.bin/eslint --max-warnings 0 packages/confusing-browser-globals/
-./node_modules/.bin/eslint --max-warnings 0 packages/create-react-app/
-./node_modules/.bin/eslint --max-warnings 0 packages/eslint-config-react-app/
-./node_modules/.bin/eslint --max-warnings 0 packages/react-dev-utils/
-./node_modules/.bin/eslint --max-warnings 0 packages/react-error-overlay/src/
-./node_modules/.bin/eslint --max-warnings 0 packages/react-scripts/
-
-npm test -w react-error-overlay
 if [ "$AGENT_OS" != 'Windows_NT' ]; then
   # Flow started hanging on Windows build agents
   npm run flow -w react-error-overlay
 fi
 
-npm test -w react-dev-utils
-
-npm test -w babel-plugin-named-asset-import
-
-npm test -w confusing-browser-globals
+# Test all packages
+npm run test:packages
 
 # ******************************************************************************
 # First, test the create-react-app development environment.
@@ -115,7 +48,7 @@ exists build/static/media/*.svg
 exists build/favicon.ico
 
 # Run tests with CI flag
-CI=true npm test
+npm test
 # Uncomment when snapshot testing is enabled by default:
 # exists template/src/__snapshots__/App.test.js.snap
 
@@ -222,8 +155,8 @@ exists build/static/css/*.css
 exists build/static/media/*.svg
 exists build/favicon.ico
 
-# Run tests with CI flag
-CI=true npm test
+# Run tests
+npm test
 # Uncomment when snapshot testing is enabled by default:
 # exists src/__snapshots__/App.test.js.snap
 
@@ -255,8 +188,8 @@ exists build/static/css/*.css
 exists build/static/media/*.svg
 exists build/favicon.ico
 
-# Run tests, overriding the watch option to disable it.
-npm test --watch=no
+# Run tests
+npm test
 # Uncomment when snapshot testing is enabled by default:
 # exists src/__snapshots__/App.test.js.snap
 
