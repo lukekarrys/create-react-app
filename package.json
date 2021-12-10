@@ -18,7 +18,7 @@
     "test:behavior": "jest test/fixtures --config test/fixtures/jest.config.js",
     "test:e2e": "test/e2e/_runner.sh",
     "test:packages": "npm test -ws --if-present",
-    "test": "cd packages/react-scripts && node bin/react-scripts.js test",
+    "test": "echo 'running root test'; exit 1;",
     "format": "prettier --write 'packages/*/*.js' 'packages/*/!(node_modules)/**/*.js'"
   },
   "devDependencies": {
